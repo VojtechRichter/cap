@@ -1,4 +1,4 @@
-#include <pcap.h>
+#include <pcap/pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,10 +23,15 @@ void packet_handler(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u
     }
 }
 
+void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u_char *packet_bytes)
+{
+    printf("callback triggerred\n");
+}
+
 int main()
 {
     const char *dev = "enp4s0";
-    const errbuf[PCAP_ERRBUF_SIZE * 2]
+    char errbuf[PCAP_ERRBUF_SIZE * 2];
 
     if (pcap_init(PCAP_CHAR_ENC_UTF_8, errbuf) != 0) {
         fprintf(stderr, "pcap_init error: %s\n", errbuf);
@@ -34,7 +39,7 @@ int main()
         return 1;
     }
 
-    pcap_t *cap_handle = packet_create(dev, errbuf);
+    pcap_t *cap_handle = pcap_create(dev, errbuf);
     if (cap_handle == NULL) {
         fprintf(stderr, "packet_create error: %s\n", errbuf);
 
@@ -48,13 +53,15 @@ int main()
     }
 
     if (pcap_activate(cap_handle) != 0) {
-        fprintf(stderr, "pcap_activate error: %s\n", pcap_geterr());
+        fprintf(stderr, "pcap_activate error: %s\n", pcap_geterr(cap_handle));
         pcap_close(cap_handle);
 
         return 1;
     }
 
-    pcap_close(handle);
+    int packets_processed = pcap_dispatch(cap_handle, 1, dispatch_callback, NULL);
+
+    pcap_close(cap_handle);
 
     return 0;
 }
