@@ -6,6 +6,8 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
+#define ETHER_HEADER_SIZE 14
+
 void packet_handler(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u_char *packet)
 {
     printf("packet captured!\n");
@@ -25,7 +27,9 @@ void packet_handler(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u
 
 void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u_char *packet_bytes)
 {
-    printf("callback triggerred\n");
+    struct ip *ip_header = (struct ip *)(packet_bytes + ETHER_HEADER_SIZE);
+
+    printf("source address: %s\n", inet_ntoa(ip_header->ip_src));
 }
 
 int main()
@@ -58,6 +62,18 @@ int main()
 
         return 1;
     }
+
+    // filtering
+    /*
+    struct bpf_program bpf = {0};
+    if (pcap_compile(cap_handle, &bpf, "tcp and udp", 0, 0) == PCAP_ERROR) {
+        fprintf(stderr, "pcap_compile error: %s\n", pcap_geterr(cap_handle));
+    }
+
+    if (pcap_setfilter(cap_handle, &bpf) != 0) {
+        fprintf(stderr, "pcap_setfilter error: %s\n", pcap_geterr(cap_handle));
+    }
+    */
 
     int packets_processed = pcap_dispatch(cap_handle, 1, dispatch_callback, NULL);
 
