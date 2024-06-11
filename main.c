@@ -5,6 +5,7 @@
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
+#include <inttypes.h>
 
 #define ETHER_HEADER_SIZE 14
 
@@ -25,11 +26,42 @@ void packet_handler(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u
     }
 }
 
+struct PacketLog {
+    const char *src_addr;
+    uint16_t src_port;
+
+    const char *dest_addr;
+    uint16_t dest_port;
+
+    uint8_t protocol;
+};
+
+void log_packet(struct PacketLog packet_log)
+{
+    printf("\t----------------------------------------\n");
+    printf("\t| ");
+    printf("Source address");
+    printf(" | ");
+    printf("Destination address");
+    printf(" |\n");
+
+    printf("\t|  %s", packet_log.src_addr);
+    printf("   |     %s", packet_log.dest_addr);
+    printf("    | \n");
+
+    printf("\t----------------------------------------\n");
+}
+
 void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u_char *packet_bytes)
 {
     struct ip *ip_header = (struct ip *)(packet_bytes + ETHER_HEADER_SIZE);
 
-    printf("source address: %s\n", inet_ntoa(ip_header->ip_src));
+    struct PacketLog plog = {
+        .src_addr = inet_ntoa(ip_header->ip_src),
+        .dest_addr = inet_ntoa(ip_header->ip_dst)
+    };
+
+    log_packet(plog);
 }
 
 int main()
