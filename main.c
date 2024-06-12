@@ -93,9 +93,21 @@ void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, cons
     log_packet(plog);
 }
 
-int main()
+void log_command_usage()
 {
-    const char *dev = "enp4s0";
+    printf("\tsudo ./cap [Network device]\n");
+}
+
+int main(int argc, char **argv)
+{
+    if (argc < 1) {
+        fprintf(stderr, "Missing network device argument\n");
+        log_command_usage();
+
+        return 1;
+    }
+
+    const char *dev = argv[1];
     char errbuf[PCAP_ERRBUF_SIZE * 2];
 
     if (pcap_init(PCAP_CHAR_ENC_UTF_8, errbuf) != 0) {
