@@ -9,10 +9,9 @@
 
 #define ETHER_HEADER_SIZE 14
 
+/*
 void packet_handler(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u_char *packet)
 {
-    printf("packet captured!\n");
-
     struct ip *iph = (struct ip *)(packet + 14);
     printf("Captured a packet with IP: %s\n", inet_ntoa(iph->ip_src));
     if (iph->ip_p == IPPROTO_TCP) {
@@ -25,6 +24,7 @@ void packet_handler(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u
         printf("Destination port: %d\n", ntohs(udph->uh_dport));
     }
 }
+*/
 
 struct PacketLog {
     const char *src_addr;
