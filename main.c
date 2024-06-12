@@ -33,23 +33,27 @@ struct PacketLog {
     const char *dest_addr;
     uint16_t dest_port;
 
-    uint8_t protocol;
+    const char *protocol;
 };
 
 void log_packet(struct PacketLog packet_log)
 {
-    printf("\t----------------------------------------\n");
-    printf("\t| ");
+    printf("\t---------------------------------------------------\n");
+    printf("\t|  ");
     printf("Source address");
-    printf(" | ");
+    printf("  | ");
     printf("Destination address");
+    printf(" | ");
+    printf("Protocol");
     printf(" |\n");
 
     printf("\t|  %s", packet_log.src_addr);
-    printf("   |     %s", packet_log.dest_addr);
-    printf("    | \n");
+    printf(" |   %s", packet_log.dest_addr);
+    printf("   |  ");
+    printf(" %s", packet_log.protocol);
+    printf("    |\n");
 
-    printf("\t----------------------------------------\n");
+    printf("\t---------------------------------------------------\n\n\n");
 }
 
 void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u_char *packet_bytes)
@@ -60,6 +64,31 @@ void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, cons
         .src_addr = inet_ntoa(ip_header->ip_src),
         .dest_addr = inet_ntoa(ip_header->ip_dst)
     };
+
+    // TODO: source and dest port (fetch from udp/tcp header)
+
+    switch (ip_header->ip_p) {
+        case IPPROTO_UDP: {
+            plog.protocol = "UDP";
+        } break;
+
+        case IPPROTO_TCP: {
+            plog.protocol = "TCP";
+        } break;
+
+        case IPPROTO_SCTP: {
+            plog.protocol = "SCTP";
+        } break;
+
+        case IPPROTO_UDPLITE: {
+            plog.protocol = "UDPLITE";
+        } break;
+
+        default: {
+            plog.protocol = "Unsupported IP protocol";
+            fprintf(stderr, "Unsupported IP protocol: %d\n", ip_header->ip_p);
+        }
+    }
 
     log_packet(plog);
 }
@@ -107,7 +136,7 @@ int main()
     }
     */
 
-    int packets_processed = pcap_dispatch(cap_handle, 1, dispatch_callback, NULL);
+    int packets_processed = pcap_dispatch(cap_handle, 10, dispatch_callback, NULL);
 
     pcap_close(cap_handle);
 
