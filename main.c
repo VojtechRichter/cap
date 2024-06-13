@@ -99,7 +99,8 @@ void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, cons
 
 void log_command_usage()
 {
-    printf("\tsudo ./cap [Network device]\n");
+    printf("usage: sudo ./cap [-d network_interface] [-c receive_packet_count] [-v | --version]\n");
+    printf("See 'cap help' for a list of available commands\n");
 }
 
 int filter_packets(pcap_t *handle, const char *filter_exp)
@@ -124,8 +125,8 @@ int filter_packets(pcap_t *handle, const char *filter_exp)
 
 int main(int argc, char **argv)
 {
-    if (argc < 1) {
-        fprintf(stderr, "Missing network device argument\n");
+    if (argc < 2) {
+        fprintf(stderr, "Missing network device argument\n\n");
         log_command_usage();
 
         return 1;
@@ -154,7 +155,7 @@ int main(int argc, char **argv)
     }
 
     if (pcap_activate(cap_handle) != 0) {
-        fprintf(stderr, "pcap_activate error: %s\n", pcap_geterr(cap_handle));
+        fprintf(stderr, "cap error: %s\n", pcap_geterr(cap_handle));
         pcap_close(cap_handle);
 
         return 1;
