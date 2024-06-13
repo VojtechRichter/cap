@@ -102,6 +102,26 @@ void log_command_usage()
     printf("\tsudo ./cap [Network device]\n");
 }
 
+int filter_packets(pcap_t *handle, const char *filter_exp)
+{
+    struct bpf_program bpf = {0};
+    if (pcap_compile(handle, &bpf, filter_exp, 0, 0) == PCAP_ERROR) {
+        fprintf(stderr, "pcap_compile error: %s\n", pcap_geterr(handle));
+
+        return 1;
+    }
+
+    if (pcap_setfilter(handle, &bpf) != 0) {
+        fprintf(stderr, "pcap_setfilter error: %s\n", pcap_geterr(handle));
+
+        return 1;
+    }
+
+    pcap_freecode(&bpf);
+
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 1) {
@@ -140,21 +160,17 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    struct bpf_program bpf = {0};
-    bpf_u_int32 net;
-    if (pcap_compile(cap_handle, &bpf, "ip", 0, net) == PCAP_ERROR) {
-        fprintf(stderr, "pcap_compile error: %s\n", pcap_geterr(cap_handle));
+    if (filter_packets(cap_handle, "ip") != 0) {
         return 1;
     }
 
-    if (pcap_setfilter(cap_handle, &bpf) != 0) {
-        fprintf(stderr, "pcap_setfilter error: %s\n", pcap_geterr(cap_handle));
+    int result = pcap_loop(cap_handle, 0, dispatch_callback, NULL);
+    if (result == PCAP_ERROR) {
+        fprintf(stderr, "pcap_loop error: %s\n", pcap_geterr(cap_handle));
+
         return 1;
     }
 
-    int packets_processed = pcap_loop(cap_handle, 0, dispatch_callback, NULL);
-
-    pcap_freecode(&bpf);
     pcap_close(cap_handle);
 
     return 0;
