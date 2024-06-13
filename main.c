@@ -7,6 +7,8 @@
 #include <netinet/udp.h>
 #include <inttypes.h>
 
+#define CAP_VERSION "0.0.1"
+
 #define ETHER_HEADER_SIZE 14
 
 void packet_handler(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u_char *packet)
@@ -52,6 +54,11 @@ void log_packet(struct PacketLog packet_log)
     printf("    |\n");
 
     printf("\t---------------------------------------------------\n\n");
+}
+
+void log_cap_version()
+{
+    printf("cap version %s\n", (const char *)CAP_VERSION);
 }
 
 void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u_char *packet_bytes)
@@ -101,6 +108,7 @@ void log_command_usage()
 {
     printf("usage: sudo ./cap [-d network_interface] [-c receive_packet_count] [-v | --version]\n");
     printf("See 'cap help' for a list of available commands\n");
+    log_cap_version();
 }
 
 int filter_packets(pcap_t *handle, const char *filter_exp)
