@@ -9,7 +9,6 @@
 
 #define ETHER_HEADER_SIZE 14
 
-/*
 void packet_handler(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u_char *packet)
 {
     struct ip *iph = (struct ip *)(packet + 14);
@@ -24,7 +23,6 @@ void packet_handler(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u
         printf("Destination port: %d\n", ntohs(udph->uh_dport));
     }
 }
-*/
 
 struct PacketLog {
     const char *src_addr;
@@ -53,7 +51,7 @@ void log_packet(struct PacketLog packet_log)
     printf(" %s", packet_log.protocol);
     printf("    |\n");
 
-    printf("\t---------------------------------------------------\n\n\n");
+    printf("\t---------------------------------------------------\n\n");
 }
 
 void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, const u_char *packet_bytes)
@@ -65,15 +63,21 @@ void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, cons
         .dest_addr = inet_ntoa(ip_header->ip_dst)
     };
 
-    // TODO: source and dest port (fetch from udp/tcp header)
-
     switch (ip_header->ip_p) {
         case IPPROTO_UDP: {
             plog.protocol = "UDP";
+
+            struct udphdr *udph = (struct udphdr *)(packet_bytes + ETHER_HEADER_SIZE + ip_header->ip_hl * 4);
+            plog.src_port = ntohs(udph->uh_sport);
+            plog.dest_port = ntohs(udph->uh_dport);
         } break;
 
         case IPPROTO_TCP: {
             plog.protocol = "TCP";
+
+            struct tcphdr *tcph = (struct tcphdr *)(packet_bytes + ETHER_HEADER_SIZE + ip_header->ip_hl * 4);
+            plog.src_port = ntohs(tcph->th_sport);
+            plog.dest_port = ntohs(tcph->th_dport);
         } break;
 
         case IPPROTO_SCTP: {
@@ -85,8 +89,8 @@ void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, cons
         } break;
 
         default: {
-            plog.protocol = "Unsupported IP protocol";
             fprintf(stderr, "Unsupported IP protocol: %d\n", ip_header->ip_p);
+            return;
         }
     }
 
@@ -136,20 +140,21 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // filtering
-    /*
     struct bpf_program bpf = {0};
-    if (pcap_compile(cap_handle, &bpf, "tcp and udp", 0, 0) == PCAP_ERROR) {
+    bpf_u_int32 net;
+    if (pcap_compile(cap_handle, &bpf, "ip", 0, net) == PCAP_ERROR) {
         fprintf(stderr, "pcap_compile error: %s\n", pcap_geterr(cap_handle));
+        return 1;
     }
 
     if (pcap_setfilter(cap_handle, &bpf) != 0) {
         fprintf(stderr, "pcap_setfilter error: %s\n", pcap_geterr(cap_handle));
+        return 1;
     }
-    */
 
-    int packets_processed = pcap_dispatch(cap_handle, 10, dispatch_callback, NULL);
+    int packets_processed = pcap_loop(cap_handle, 0, dispatch_callback, NULL);
 
+    pcap_freecode(&bpf);
     pcap_close(cap_handle);
 
     return 0;
