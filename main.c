@@ -140,6 +140,15 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // TODO: parse args
+    if (argc > 3) {
+        if (argv[2] == "-v") {
+            log_cap_version(); 
+        } else if (argv[2] == "-d") {
+        } else if (argv[2] == "-c") {
+        }
+    }
+
     const char *dev = argv[1];
     char errbuf[PCAP_ERRBUF_SIZE * 2];
 
