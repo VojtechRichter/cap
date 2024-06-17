@@ -106,7 +106,7 @@ void dispatch_callback(u_char *user_data, const struct pcap_pkthdr *pkthdr, cons
 
 void log_command_usage()
 {
-    printf("usage: sudo ./cap [-d network_interface] [-c receive_packet_count] [-v | --version]\n");
+    printf("usage: sudo ./cap [-i network_interface] [-c receive_packet_count] [-v | --version]\n");
     printf("See 'cap help' for a list of available commands\n");
     log_cap_version();
 }
@@ -134,22 +134,46 @@ int filter_packets(pcap_t *handle, const char *filter_exp)
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        fprintf(stderr, "Missing network device argument\n\n");
         log_command_usage();
 
         return 1;
     }
 
-    // TODO: parse args
+    // 0 == fetch forever
+    uint32_t packet_limit = 0;
+
+    char *net_interface;
+
     if (argc > 3) {
-        if (argv[2] == "-v") {
-            log_cap_version(); 
-        } else if (argv[2] == "-d") {
-        } else if (argv[2] == "-c") {
+        for (uint8_t i = 2; i < argc; i++) {
+            if (!strcmp(argv[i], "-i")) {
+                if (argv[i + 1] != NULL) {
+                    printf("setting net interface!!\n");
+                    net_interface = strcpy(net_interface, argv[i + 1]);
+                } else {
+                    fprintf(stderr, "No network interface provided for option '-i'\n");
+                }
+            } else if (!strcmp(argv[i], "-v")) {
+                log_cap_version();
+            } else if (!strcmp(argv[i], "-c")) {
+                if (argv[i + 1] != NULL) {
+                    packet_limit = (uint32_t)atoi(argv[i + 1]);
+                } else {
+                    fprintf(stderr, "No number specified for option '-c'\n");
+                }
+            }
         }
     }
 
-    const char *dev = argv[1];
+    printf("supplied arguments: ");
+    for (uint8_t i = 0; i < argc; i++) {
+        printf("%s ", argv[i]);
+    }
+    printf("\n");
+    printf("Using following cap config:\n");
+    printf("network interface: %s\n", net_interface);
+    printf("packet limit: %d\n\n", packet_limit);
+
     char errbuf[PCAP_ERRBUF_SIZE * 2];
 
     if (pcap_init(PCAP_CHAR_ENC_UTF_8, errbuf) != 0) {
@@ -158,7 +182,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    pcap_t *cap_handle = pcap_create(dev, errbuf);
+    pcap_t *cap_handle = pcap_create(net_interface, errbuf);
     if (cap_handle == NULL) {
         fprintf(stderr, "packet_create error: %s\n", errbuf);
 
@@ -182,7 +206,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    int result = pcap_loop(cap_handle, 0, dispatch_callback, NULL);
+    int result = pcap_loop(cap_handle, packet_limit, dispatch_callback, NULL);
     if (result == PCAP_ERROR) {
         fprintf(stderr, "pcap_loop error: %s\n", pcap_geterr(cap_handle));
 
